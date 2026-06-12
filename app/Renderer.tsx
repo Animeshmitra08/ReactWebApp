@@ -1,40 +1,37 @@
-import React, { useState } from "react";
-import { View, TextInput, Button, StyleSheet } from "react-native";
+import React, { useRef, useState, useEffect } from "react";
+import { View, StyleSheet, BackHandler } from "react-native";
 import { WebView } from "react-native-webview";
 
-export default function App() {
-  const [url, setUrl] = useState("https://example.com");
-  const [input, setInput] = useState("");
+export default function Renderer() {
+  const webViewRef = useRef<WebView>(null);
+  const [canGoBack, setCanGoBack] = useState(false);
 
-  const loadUrl = () => {
-    let formatted = input.trim();
+  useEffect(() => {
+    const backAction = () => {
+      if (canGoBack && webViewRef.current) {
+        webViewRef.current.goBack();
+        return true; // prevent app exit
+      }
+      return false; // allow default behavior (exit app)
+    };
 
-    // ensure http/https exists
-    if (!formatted.startsWith("http")) {
-      formatted = "https://" + formatted;
-    }
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      backAction
+    );
 
-    setUrl(formatted);
-  };
+    return () => backHandler.remove();
+  }, [canGoBack]);
 
   return (
     <View style={styles.container}>
-      {/* URL Input */}
-      <View style={styles.topBar}>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter URL..."
-          value={input}
-          onChangeText={setInput}
-        />
-        <Button title="Go" onPress={loadUrl} />
-      </View>
-
-      {/* WebView */}
       <WebView
-        source={{ uri: url }}
+        ref={webViewRef}
+        source={{ uri: "https://google.com" }}
         style={styles.webview}
-        startInLoadingState
+        onNavigationStateChange={(navState) => {
+          setCanGoBack(navState.canGoBack);
+        }}
       />
     </View>
   );
@@ -42,19 +39,5 @@ export default function App() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  topBar: {
-    flexDirection: "row",
-    padding: 10,
-    backgroundColor: "#eee",
-  },
-  input: {
-    flex: 1,
-    borderWidth: 1,
-    marginRight: 10,
-    paddingHorizontal: 8,
-    borderRadius: 5,
-  },
-  webview: {
-    flex: 1,
-  },
+  webview: { flex: 1 },
 });
